@@ -105,6 +105,8 @@ in order, separated by the same non-word characters that separate
 words in the query. This is similar to the completion style
 `partial'.
 
+Value `custom' means the subquery is interpreted by `prescient-custom-filter-function'.
+
 Value can also be a list of any of the above methods, in which
 case each method will be applied in order until one matches.
 
@@ -116,6 +118,7 @@ be `literal+initialism', which equivalent to the list (`literal'
           (const :tag "Regexp" regexp)
           (const :tag "Initialism" initialism)
           (const :tag "Fuzzy" fuzzy)
+          (const :tag "Custom" custom)
           (const :tag "Prefix" prefix)))
 
 (defcustom prescient-sort-length-enable t
@@ -137,6 +140,12 @@ If non-nil, then write the cache data to `prescient-save-file'
 after the cache data is updated by `prescient-remember' when
 `prescient-persist-mode' is activated."
   :type 'boolean)
+
+(defcustom prescient-custom-filter-function nil
+  "This function will be used to filter candidates when adding `custom' to `prescient-filter-method'.
+This function receives two arguments: query and an optional with-groups, similar with other filter functions."
+  :type 'function)
+
 
 ;;;; Caches
 
@@ -398,6 +407,9 @@ enclose literal substrings with capture groups."
                subquery))
             (`fuzzy
              (prescient--fuzzy-regexp subquery with-groups))
+            (`custom
+             (when (and prescient-custom-filter-function (functionp prescient-custom-filter-function))
+               (funcall prescient-custom-filter-function subquery with-groups)))
             (`prefix
              (prescient--prefix-regexp subquery with-groups))))
         (pcase prescient-filter-method
